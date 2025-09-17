@@ -91,3 +91,5 @@ class SupabaseClient:
     def delete_client(self, client_id: int) -> Dict[str, Any]:
         response = self.client.table('clients').delete().eq('id', client_id).execute()
         return response.data
+
+db_client = SupabaseClient()
