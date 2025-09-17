@@ -1,5 +1,5 @@
 import FreeSimpleGUI as sg
-from supabase_client import SupabaseClient
+from database.supabase_client import SupabaseClient
 import ui.views as ui
 
 def main():
@@ -18,6 +18,8 @@ def main():
                 next_window = ui.run_main_menu()
             case 'manage_courts':
                 next_window = ui.run_manage_courts(db_client)
+            case 'manage_clients':
+                next_window = ui.run_manage_clients(db_client)
             case 'manager_area':
                 next_window = ui.run_manager_area(db_client)
             case 'back_to_main':

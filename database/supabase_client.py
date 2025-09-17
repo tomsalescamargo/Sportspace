@@ -2,8 +2,10 @@
 Este módulo gerencia a comunicação com o banco de dados Supabase.
 """
 import os
+from typing import Dict, Any
 from dotenv import load_dotenv
 import supabase
+from model.Client import Client
 from model.Court import Court
 from model.FixedCost import FixedCost
 
@@ -60,3 +62,32 @@ class SupabaseClient:
         }
         response = self.client.table('fixedCosts').insert(fixed_cost).execute()
         return response
+
+    def create_client(self, client: Client):
+        client_dict = {
+            "name": client.name,
+            "phone": client.phone,
+            "cpf": client.cpf
+        }
+        response = self.client.table('clients').insert(client_dict).execute()
+        return response
+
+    def get_clients(self) -> list[Client]:
+        response = self.client.table('clients').select('*').execute()
+        clients = []
+        for item in response.data:
+            clients.append(Client(
+                id=item['id'],
+                name=item['name'],
+                phone=item['phone'],
+                cpf=item['cpf']
+            ))
+        return clients
+
+    def update_client(self, client_id: int, data_to_update: dict):
+        response = self.client.table('clients').update(data_to_update).eq('id', client_id).execute()
+        return response
+
+    def delete_client(self, client_id: int) -> Dict[str, Any]:
+        response = self.client.table('clients').delete().eq('id', client_id).execute()
+        return response.data
