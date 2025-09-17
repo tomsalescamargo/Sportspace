@@ -17,7 +17,7 @@ load_dotenv()
 
 MANAGER_PASSWORD = os.getenv("MANAGER_PASSWORD")
 
-#TODO: acho uma boa ideia separar essas views em diferentes arquivos, um pra cada 'modulo' pra que esse arquivo nao fique muito grande (ja ta meio grande)
+#TODO: separar cada uma dessas funções em arquivos para modularização
 
 def run_main_menu():
     """
@@ -184,18 +184,16 @@ def _run_register_court_form(db_client: SupabaseClient):
 
     if event == 'Salvar':
         try:
-            price = float(values['price_per_hour']) or None
-            capacity = int(values['capacity']) or None
-            start_hour = f"{int(values['start_hour']):02d}:00:00" or None
-            end_hour = f"{int(values['end_hour']):02d}:00:00" or None
-            
+            price_per_hour = float(values['price_per_hour'])
+            capacity = int(values['capacity'])
+   
             new_court = Court(
                 id=0,
                 name=values['name'],
                 court_type=values['court_type'],
                 description=values['description'],
-                capacity=values['capacity'],
-                price_per_hour=values['price'],
+                capacity=capacity,
+                price_per_hour=price_per_hour,
                 start_hour=values['start_hour'],
                 end_hour=values['end_hour'],
             )
