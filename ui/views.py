@@ -7,7 +7,9 @@ import os
 from dotenv import load_dotenv
 from supabase_client import SupabaseClient
 from model.Court import Court
-import styles as styles
+from model.FixedCost import FixedCost
+from datetime import datetime
+import ui.styles as styles
 
 load_dotenv()
 
@@ -57,7 +59,7 @@ def run_main_menu():
     window.close()
     return next_window
 
-def run_manage_courts(supabase_client: SupabaseClient):
+def run_manage_courts(db_client: SupabaseClient):
     """
     Cria e exibe a janela de gerenciamento de quadras.
     """
@@ -78,13 +80,13 @@ def run_manage_courts(supabase_client: SupabaseClient):
         if event in (sg.WIN_CLOSED, 'back_to_main'):
             break
         elif event == 'register_court':
-            _run_register_court_form(supabase_client)
+            _run_register_court_form(db_client)
         elif event == 'list_courts':
-            _run_list_courts_table(supabase_client)
+            _run_list_courts_table(db_client)
             window.close()
     return next_window
 
-def run_manager_area():
+def run_manager_area(db_client: SupabaseClient):
     """
     Cria e exibe a janela da área do gerente.
     """
@@ -107,7 +109,7 @@ def run_manager_area():
         elif event == 'generate_reports':
             sg.popup('Funcionalidade ainda não implementada.')
         elif event == 'register_fixed_cost':
-            sg.popup('Funcionalidade ainda não implementada.')
+            _run_register_fixed_cost_form(db_client)
 
     window.close()
     return next_window
@@ -129,8 +131,38 @@ def _run_password_prompt():
         return values['-PASSWORD-']
     return None
 
+def _run_register_fixed_cost_form(db_client: SupabaseClient):
+    """
+    Cria e exibe o formulário de cadastro de novo custo fixo.
+    """
+    layout = [
+        [sg.Text('Registrar Novo Custo Fixo', font=styles.HEADING_FONT)],
+        [sg.Text('Nome:', size=(15, 1)), sg.Input(key='name')],
+        [sg.Text('Descrição:', size=(15, 1)), sg.Input(key='description')],
+        [sg.Text('Valor:', size=(15, 1)), sg.Input(key='value')],
+        [sg.Text('Data:', size=(15, 1)), sg.Input(key='date', size=(20, 1)), sg.CalendarButton('Selecionar Data', target='date', format='%Y-%m-%d')],
+        [sg.Button('Salvar'), sg.Cancel('Cancelar')]
+    ]
+
+    window = sg.Window('Registrar Custo Fixo', layout, modal=True)
+    event, values = window.read()
+    window.close()
+
+    if event == 'Salvar':
+        try:
+            fixed_cost = FixedCost(
+                description=values['description'],
+                name=values['name'],
+                value=float(values['value']),
+                date=datetime.strptime(values['date'], '%Y-%m-%d').date()
+            )
+            db_client.create_fixed_cost(fixed_cost)
+            sg.popup('Sucesso', f'Custo fixo registrado com sucesso!')
+        except Exception as e:
+            sg.popup('Erro', f'Ocorreu um erro ao registrar o custo fixo: {e}')
+
 # funcoes prefixadas com _ nao navegam, sao internas
-def _run_register_court_form(supabase_client: SupabaseClient):
+def _run_register_court_form(db_client: SupabaseClient):
     """
     Cria e exibe o formulário de cadastro de nova quadra.
     """
@@ -151,35 +183,34 @@ def _run_register_court_form(supabase_client: SupabaseClient):
     window.close()
 
     if event == 'Salvar':
-        #TODO: passar isso para o supabase_client.py que é nosso handler de backend. views.py só deve cuidar de UI, nao deve chamar o bd.
         try:
-            price = float(values['price_per_hour'])
-            capacity = int(values['capacity'])
-            start_hour = f"{int(values['start_hour']):02d}:00:00"
-            end_hour = f"{int(values['end_hour']):02d}:00:00"
+            price = float(values['price_per_hour']) or None
+            capacity = int(values['capacity']) or None
+            start_hour = f"{int(values['start_hour']):02d}:00:00" or None
+            end_hour = f"{int(values['end_hour']):02d}:00:00" or None
             
             new_court = Court(
                 id=0,
                 name=values['name'],
                 court_type=values['court_type'],
                 description=values['description'],
-                capacity=capacity,
-                price_per_hour=price,
-                start_hour=start_hour,
-                end_hour=end_hour,
+                capacity=values['capacity'],
+                price_per_hour=values['price'],
+                start_hour=values['start_hour'],
+                end_hour=values['end_hour'],
             )
             
-            supabase_client.create_court(new_court)
+            db_client.create_court(new_court)
             sg.popup('Sucesso', 'Quadra cadastrada com sucesso!')
         except (ValueError, TypeError) as e:
-            sg.popup('Erro', f'Ocorreu um erro ao cadastrar: {e}')
+            sg.popup('Erro ao cadastrar quadra: ', e)
 
 # funcoes prefixadas com _ nao navegam, sao internas
-def _run_list_courts_table(supabase_client: SupabaseClient):
+def _run_list_courts_table(db_client: SupabaseClient):
     """
     Cria e exibe uma tabela com a lista de quadras cadastradas.
     """
-    courts = supabase_client.get_courts()
+    courts = db_client.get_courts()
     
     if not courts:
         sg.popup('Nenhuma quadra encontrada.')

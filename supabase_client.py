@@ -1,36 +1,22 @@
 """
 Este módulo gerencia a comunicação com o banco de dados Supabase.
-Ele abstrai as chamadas para a API do Supabase em métodos mais simples.
 """
 import os
 from dotenv import load_dotenv
 import supabase
 from model.Court import Court
+from model.FixedCost import FixedCost
 
 load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-#NOTE: ainda é necessario criar as outras tabelas no supabase. a tabela de clientes se chamara 'clients', custos fixos 'fixedCosts'
-
 class SupabaseClient:
-    """
-    Cliente para interagir com a API do Supabase.
-    """
     def __init__(self):
-        """
-        Inicializa o cliente Supabase.
-        """
         self.client = supabase.create_client(SUPABASE_URL, SUPABASE_KEY)
 
     def get_courts(self) -> list[Court]:
-        """
-        Busca todas as quadras do banco de dados.
-
-        Returns:
-            Uma lista de objetos Court.
-        """
         response = self.client.table('courts').select('*').execute()
         courts = []
         for item in response.data:
@@ -63,4 +49,14 @@ class SupabaseClient:
             "end_hour": court.end_hour,
         }
         response = self.client.table('courts').insert(court_dict).execute()
+        return response
+
+    def create_fixed_cost(self, fc: FixedCost):
+        fixed_cost = {
+            "name": fc.name,
+            "description": fc.description,
+            "value" : fc.value,
+            "date" : fc.date.isoformat()
+        }
+        response = self.client.table('fixedCosts').insert(fixed_cost).execute()
         return response
