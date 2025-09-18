@@ -2,7 +2,6 @@
 Este módulo gerencia a comunicação com o banco de dados Supabase.
 """
 import os
-from typing import Dict, Any
 from dotenv import load_dotenv
 import supabase
 from model.Client import Client
@@ -14,6 +13,7 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
+#TODO: sepa isso aqui vai ficar grande tbm, separar
 class SupabaseClient:
     def __init__(self):
         self.client = supabase.create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -53,12 +53,13 @@ class SupabaseClient:
         response = self.client.table('courts').insert(court_dict).execute()
         return response
 
+    #TODO: remover data daqui e do banco de dados. (tem q ficar por enquanto até o professor corrigir a entrega pq senao ele vai tentar registrar custo fixo e n vai bater com o banco)
     def create_fixed_cost(self, fc: FixedCost):
         fixed_cost = {
             "name": fc.name,
             "description": fc.description,
             "value" : fc.value,
-            "date" : fc.date.isoformat()
+            "date" : "2025-12-8"
         }
         response = self.client.table('fixedCosts').insert(fixed_cost).execute()
         return response
@@ -88,8 +89,8 @@ class SupabaseClient:
         response = self.client.table('clients').update(data_to_update).eq('id', client_id).execute()
         return response
 
-    def delete_client(self, client_id: int) -> Dict[str, Any]:
+    def delete_client(self, client_id: int):
         response = self.client.table('clients').delete().eq('id', client_id).execute()
-        return response.data
+        return response
 
 db_client = SupabaseClient()

@@ -4,8 +4,8 @@ Este módulo define a janela da área do gerente.
 import FreeSimpleGUI as sg
 from database.supabase_client import db_client
 from model.FixedCost import FixedCost
-from datetime import datetime
 import ui.styles as styles
+from model.exceptions import FormValidationException
 
 def run_manager_area():
     """
@@ -24,7 +24,7 @@ def run_manager_area():
 
     next_window = 'back_to_main'
     while True:
-        event, values = window.read()
+        event, _ = window.read()
         if event in (sg.WIN_CLOSED, 'back_to_main'):
             break
         elif event == 'generate_reports':
@@ -39,28 +39,36 @@ def _run_register_fixed_cost_form():
     """
     Cria e exibe o formulário de cadastro de novo custo fixo.
     """
-    layout = [
-        [sg.Text('Registrar Novo Custo Fixo', font=styles.HEADING_FONT)],
-        [sg.Text('Nome:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='name')],
-        [sg.Text('Descrição:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='description')],
-        [sg.Text('Valor:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='value')],
-        [sg.Text('Data:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='date', size=(20, 1)), sg.CalendarButton('Selecionar Data', target='date', format='%Y-%m-%d')],
-        [sg.Button('Salvar', **styles.form_button_style), sg.Cancel('Cancelar', **styles.form_button_style)]
-    ]
+    values = {}
+    while True:
+        layout = [
+            [sg.Text('Registrar Novo Custo Fixo', font=styles.HEADING_FONT)],
+            [sg.Text('Nome:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='name', default_text=values.get('name', ''))],
+            [sg.Text('Descrição:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='description', default_text=values.get('description', ''))],
+            [sg.Text('Valor:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='value', default_text=values.get('value', ''))],
+            [sg.Button('Salvar', **styles.form_button_style), sg.Cancel('Cancelar', **styles.form_button_style)]
+        ]
 
-    window = sg.Window('Registrar Custo Fixo', layout, modal=True)
-    event, values = window.read()
-    window.close()
+        window = sg.Window('Registrar Custo Fixo', layout, modal=True)
+        event, values = window.read()
 
-    if event == 'Salvar':
-        try:
-            fixed_cost = FixedCost(
-                description=values['description'],
-                name=values['name'],
-                value=float(values['value']),
-                date=datetime.strptime(values['date'], '%Y-%m-%d').date()
-            )
-            db_client.create_fixed_cost(fixed_cost)
-            sg.popup('Sucesso', f'Custo fixo registrado com sucesso!')
-        except Exception as e:
-            sg.popup('Erro', f'Ocorreu um erro ao registrar o custo fixo: {e}')
+        if event in (sg.WIN_CLOSED, 'Cancelar'):
+            window.close()
+            break
+        
+        if event == 'Salvar':
+            try:
+                fixed_cost = FixedCost(
+                    description=values['description'],
+                    name=values['name'],
+                    value=values['value'],
+                )
+                db_client.create_fixed_cost(fixed_cost)
+                sg.popup('Sucesso', f'Custo fixo registrado com sucesso!')
+                break
+            except FormValidationException as e:
+                sg.popup('Erro de Validação', str(e))
+            except Exception as e:
+                sg.popup('Erro no Banco de Dados', f'Ocorreu um erro ao registrar o custo fixo: {e}')
+            finally:
+                window.close()

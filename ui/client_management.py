@@ -5,6 +5,7 @@ import FreeSimpleGUI as sg
 from model.Client import Client
 import ui.styles as styles
 from database.supabase_client import db_client
+from model.exceptions import FormValidationException
 
 def run_manage_clients():
     layout = [
@@ -33,34 +34,41 @@ def run_manage_clients():
 
 
 def _run_register_client_form():
-    layout = [
-        [sg.Text('Cadastrar Novo Cliente', font=styles.HEADING_FONT)],
-        [sg.Text('Nome Completo:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='name')],
-        [sg.Text('Telefone:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='phone')],
-        [sg.Text('CPF:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='cpf')],
-        [sg.Button('Salvar', **styles.form_button_style), sg.Cancel('Cancelar', **styles.form_button_style)]
-    ]
+    values = {}
+    while True:
+        layout = [
+            [sg.Text('Cadastrar Novo Cliente', font=styles.HEADING_FONT)],
+            [sg.Text('Nome Completo:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='name', default_text=values.get('name', ''))],
+            [sg.Text('Telefone:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='phone', default_text=values.get('phone', ''))],
+            [sg.Text('CPF:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='cpf', default_text=values.get('cpf', ''))],
+            [sg.Push(), sg.Button('Salvar', **styles.form_button_style), sg.Cancel('Cancelar', **styles.form_button_style)]
+        ]
 
-    window = sg.Window('Cadastrar Cliente', layout, modal=True)
-    event, values = window.read()
-    window.close()
+        window = sg.Window('Cadastrar Cliente', layout, modal=True)
+        event, values = window.read()
 
-    if event == 'Salvar':
-        try:
-            new_client = Client(
-                id=0,
-                name=values['name'],
-                phone=values['phone'],
-                cpf=values['cpf']
-            )
+        if event in (sg.WIN_CLOSED, 'Cancelar'):
+            window.close()
+            break
+        
+        if event == 'Salvar':
+            try:
+                new_client = Client(
+                    id=0,
+                    name=values['name'],
+                    phone=values['phone'],
+                    cpf=values['cpf']
+                )
 
-            db_client.create_client(new_client)
-            sg.popup('Sucesso', 'Cliente cadastrado com sucesso!')
-        except (ValueError, TypeError) as e:
-            sg.popup('Erro de Validação', f'Ocorreu um erro ao validar os dados: {e}')
-        except Exception as e:
-            sg.popup('Erro no Banco de Dados', f'Ocorreu um erro ao salvar o cliente: {e}')
-
+                db_client.create_client(new_client)
+                sg.popup('Sucesso', 'Cliente cadastrado com sucesso!')
+                break
+            except FormValidationException as e:
+                sg.popup('Erro de Validação', str(e))
+            except Exception as e:
+                sg.popup('Erro no Banco de Dados', f'Ocorreu um erro ao salvar o cliente: {e}')
+            finally:
+                window.close()
 
 def _run_list_clients_table():
     clients = db_client.get_clients()

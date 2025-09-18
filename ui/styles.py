@@ -8,7 +8,7 @@ FONT = 'Arial'
 
 # Dimensoes de janela e botoes
 DEFAULT_WINDOW_SIZE = (800, 600)
-MAIN_BUTTON_SIZE = (25, 1.1)
+MAIN_BUTTON_SIZE = (25, 1)
 FORM_BUTTON_SIZE = (10, 1)
 INPUT_LABEL_SIZE = (15, 1)
 
@@ -25,7 +25,7 @@ BUTTON_COLOR = 'black'
 # Paddings (preenchimento)
 HEADING_PAD = ((0, 0), (20, 20))
 MAIN_BUTTON_PAD = (5, 8)
-FORM_BUTTON_PAD = (2, 5)
+FORM_BUTTON_PAD = (2, 10)
 
 # Estilos
 main_button_style = {'size': MAIN_BUTTON_SIZE, 'button_color': ('white', BUTTON_COLOR), 'pad': MAIN_BUTTON_PAD, 'font':MAIN_BUTTON_FONT, 'auto_size_button': False}

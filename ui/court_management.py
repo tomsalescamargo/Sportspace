@@ -3,8 +3,10 @@ Este módulo define a janela de gerenciamento de quadras.
 """
 import FreeSimpleGUI as sg
 from model.Court import Court
+from model.exceptions import FormValidationException
 import ui.styles as styles
 from database.supabase_client import db_client
+from model.enums import CourtType
 
 #TODO: validação correta de horas e atributos (para todos os modelos)
 
@@ -40,44 +42,52 @@ def _run_register_court_form():
     """
     Cria e exibe o formulário de cadastro de nova quadra.
     """
-    layout = [
-        [sg.Text('Cadastrar Nova Quadra', font=styles.HEADING_FONT)],
-        [sg.Text('Nome:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='name')],
-        [sg.Text('Tipo:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='court_type')],
-        [sg.Text('Descrição:', size=styles.INPUT_LABEL_SIZE), sg.Multiline(key='description', size=(35, 3))],
-        [sg.Text('Capacidade:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='capacity', size=(5,1))],
-        [sg.Text('Preço/Hora:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='price_per_hour', size=(15,1))],
-        [sg.Text('Hora de Abertura:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='start_hour', size=(5,1))],
-        [sg.Text('Hora de Fechamento:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='end_hour', size=(5,1))],
-        [sg.Button('Salvar', **styles.form_button_style), sg.Cancel('Cancelar', **styles.form_button_style)]
-    ]
+    court_types = [court_type.value for court_type in CourtType]
+    hours = [f'{h:02d}:00' for h in range(24)]
+    
+    values = {}
+    while True:
+        layout = [
+            [sg.Text('Cadastrar Nova Quadra', font=styles.HEADING_FONT)],
+            [sg.Text('Nome:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='name', size=(10, 1), default_text=values.get('name', ''))],
+            [sg.Text('Tipo:', size=styles.INPUT_LABEL_SIZE), sg.Combo(court_types, key='court_type', default_value=values.get('court_type', court_types[0]), readonly=True , size=(10, 1))],
+            [sg.Text('Descrição:', size=styles.INPUT_LABEL_SIZE), sg.Multiline(key='description', size=(35, 3), default_text=values.get('description', ''))],
+            [sg.Text('Capacidade:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='capacity', size=(5,1), default_text=values.get('capacity', ''))],
+            [sg.Text('Preço/Hora:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='price_per_hour', size=(5,1), default_text=values.get('price_per_hour', ''))],
+            [sg.Text('Hora de Abertura:', size=styles.INPUT_LABEL_SIZE), sg.Combo(hours, key='start_hour', default_value=values.get('start_hour', hours[0]), readonly=True, size=(5,1)),
+             sg.Text('Hora de Fechamento:', size=(17, 1)), sg.Combo(hours, key='end_hour', default_value=values.get('end_hour', hours[0]), readonly=True, size=(5,1))],
+            [sg.Push(), sg.Button('Salvar', **styles.form_button_style), sg.Cancel('Cancelar', **styles.form_button_style)]
+        ]
 
-    window = sg.Window('Cadastrar Quadra', layout, modal=True)
-    event, values = window.read()
-    window.close()
+        window = sg.Window('Cadastrar Quadra', layout, modal=True)
+        event, values = window.read()
 
-    if event == 'Salvar':
-        try:
-            price_per_hour = float(values['price_per_hour'])
-            capacity = int(values['capacity'])
-            start_hour = f"{int(values['start_hour']):02d}:00:00"
-            end_hour = f"{int(values['end_hour']):02d}:00:00"
-   
-            new_court = Court(
-                id=0,
-                name=values['name'],
-                court_type=values['court_type'],
-                description=values['description'],
-                capacity=capacity,
-                price_per_hour=price_per_hour,
-                start_hour=start_hour,
-                end_hour=end_hour,
-            )
-            
-            db_client.create_court(new_court)
-            sg.popup('Sucesso', 'Quadra cadastrada com sucesso!')
-        except (ValueError, TypeError) as e:
-            sg.popup('Erro ao cadastrar quadra: ', e)
+        if event in (sg.WIN_CLOSED, 'Cancelar'):
+            window.close()
+            break
+
+        if event == 'Salvar':
+            try:
+                new_court = Court(
+                    id=0,
+                    name=values['name'],
+                    court_type=values['court_type'],
+                    description=values['description'],
+                    capacity=values['capacity'],
+                    price_per_hour=values['price_per_hour'],
+                    start_hour=values['start_hour'],
+                    end_hour=values['end_hour']
+                )
+                
+                db_client.create_court(new_court)
+                sg.popup('Sucesso', 'Quadra cadastrada com sucesso!')
+                break
+            except FormValidationException as e:
+                sg.popup('Erro de Validação', str(e))
+            except Exception as e:
+                sg.popup('Erro no Banco de Dados', f'Ocorreu um erro ao salvar a quadra: {e}')
+            finally:
+                window.close()
 
 def _run_list_courts_table():
     """
