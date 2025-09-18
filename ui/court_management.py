@@ -15,13 +15,13 @@ def run_manage_courts():
     layout = [
         [sg.Text('Gerenciar Quadras', font=styles.HEADING_FONT, pad=styles.HEADING_PAD)],
         [sg.Column([
-            [sg.Button('Cadastrar Nova Quadra', key='register_court', size=styles.BUTTON_SIZE, pad=styles.BUTTON_PAD)],
-            [sg.Button('Listar Quadras', key='list_courts', size=styles.BUTTON_SIZE, pad=styles.BUTTON_PAD)],
-            [sg.Button('Voltar', key='back_to_main', size=styles.BUTTON_SIZE, pad=styles.BUTTON_PAD)]
+            [sg.Button('Cadastrar Nova Quadra', key='register_court', **styles.main_button_style)],
+            [sg.Button('Listar Quadras', key='list_courts', **styles.main_button_style)],
+            [sg.Button('Voltar', key='back_to_main', **styles.main_button_style)]
         ], element_justification='center', expand_x=True)]
     ]
 
-    window = sg.Window('Gerenciar Quadras', layout, element_justification='center', size=styles.DEFAULT_WINDOW_SIZE)
+    window = sg.Window('Gerenciar Quadras', layout, **styles.main_window_style)
 
     next_window = 'back_to_main'
     while True:
@@ -42,14 +42,14 @@ def _run_register_court_form():
     """
     layout = [
         [sg.Text('Cadastrar Nova Quadra', font=styles.HEADING_FONT)],
-        [sg.Text('Nome:', size=(15, 1)), sg.Input(key='name')],
-        [sg.Text('Tipo:', size=(15, 1)), sg.Input(key='court_type')],
-        [sg.Text('Descrição:', size=(15, 1)), sg.Multiline(key='description', size=(35, 3))],
-        [sg.Text('Capacidade:', size=(15, 1)), sg.Input(key='capacity', size=(5,1))],
-        [sg.Text('Preço/Hora:', size=(15, 1)), sg.Input(key='price_per_hour', size=(15,1))],
-        [sg.Text('Hora de Abertura:', size=(15, 1)), sg.Input(key='start_hour', size=(5,1))],
-        [sg.Text('Hora de Fechamento:', size=(15, 1)), sg.Input(key='end_hour', size=(5,1))],
-        [sg.Button('Salvar'), sg.Cancel('Cancelar')]
+        [sg.Text('Nome:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='name')],
+        [sg.Text('Tipo:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='court_type')],
+        [sg.Text('Descrição:', size=styles.INPUT_LABEL_SIZE), sg.Multiline(key='description', size=(35, 3))],
+        [sg.Text('Capacidade:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='capacity', size=(5,1))],
+        [sg.Text('Preço/Hora:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='price_per_hour', size=(15,1))],
+        [sg.Text('Hora de Abertura:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='start_hour', size=(5,1))],
+        [sg.Text('Hora de Fechamento:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='end_hour', size=(5,1))],
+        [sg.Button('Salvar', **styles.form_button_style), sg.Cancel('Cancelar', **styles.form_button_style)]
     ]
 
     window = sg.Window('Cadastrar Quadra', layout, modal=True)
@@ -60,6 +60,8 @@ def _run_register_court_form():
         try:
             price_per_hour = float(values['price_per_hour'])
             capacity = int(values['capacity'])
+            start_hour = f"{int(values['start_hour']):02d}:00:00"
+            end_hour = f"{int(values['end_hour']):02d}:00:00"
    
             new_court = Court(
                 id=0,
@@ -68,8 +70,8 @@ def _run_register_court_form():
                 description=values['description'],
                 capacity=capacity,
                 price_per_hour=price_per_hour,
-                start_hour=values['start_hour'],
-                end_hour=values['end_hour'],
+                start_hour=start_hour,
+                end_hour=end_hour,
             )
             
             db_client.create_court(new_court)
@@ -103,7 +105,7 @@ def _run_list_courts_table():
         [sg.Table(values=table_data, headings=headings, auto_size_columns=False, 
                   col_widths=[5, 20, 15, 20, 10, 10, 10, 10], 
                   justification='left', num_rows=min(len(table_data), 20))],
-        [sg.Button('OK')]
+        [sg.Button('OK', **styles.form_button_style)]
     ]
 
     window = sg.Window('Lista de Quadras', layout, modal=True)

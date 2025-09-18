@@ -10,14 +10,13 @@ def run_manage_clients():
     layout = [
         [sg.Text('Gerenciar Clientes', font=styles.HEADING_FONT, pad=styles.HEADING_PAD)],
         [sg.Column([
-            [sg.Button('Cadastrar Novo Cliente', key='register_client', size=styles.BUTTON_SIZE,
-                       pad=styles.BUTTON_PAD)],
-            [sg.Button('Listar Clientes', key='list_clients', size=styles.BUTTON_SIZE, pad=styles.BUTTON_PAD)],
-            [sg.Button('Voltar', key='back_to_main', size=styles.BUTTON_SIZE, pad=styles.BUTTON_PAD)]
+            [sg.Button('Cadastrar Novo Cliente', key='register_client', **styles.main_button_style)],
+            [sg.Button('Listar Clientes', key='list_clients', **styles.main_button_style)],
+            [sg.Button('Voltar', key='back_to_main', **styles.main_button_style)]
         ], element_justification='center', expand_x=True)]
     ]
 
-    window = sg.Window('Gerenciar Clientes', layout, element_justification='center', size=styles.DEFAULT_WINDOW_SIZE)
+    window = sg.Window('Gerenciar Clientes', layout, **styles.main_window_style)
 
     next_window = 'back_to_main'
     while True:
@@ -36,10 +35,10 @@ def run_manage_clients():
 def _run_register_client_form():
     layout = [
         [sg.Text('Cadastrar Novo Cliente', font=styles.HEADING_FONT)],
-        [sg.Text('Nome Completo:', size=(15, 1)), sg.Input(key='name')],
-        [sg.Text('Telefone:', size=(15, 1)), sg.Input(key='phone')],
-        [sg.Text('CPF:', size=(15, 1)), sg.Input(key='cpf')],
-        [sg.Button('Salvar'), sg.Cancel('Cancelar')]
+        [sg.Text('Nome Completo:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='name')],
+        [sg.Text('Telefone:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='phone')],
+        [sg.Text('CPF:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='cpf')],
+        [sg.Button('Salvar', **styles.form_button_style), sg.Cancel('Cancelar', **styles.form_button_style)]
     ]
 
     window = sg.Window('Cadastrar Cliente', layout, modal=True)
@@ -82,7 +81,7 @@ def _run_list_clients_table():
         [sg.Table(values=table_data, headings=headings, auto_size_columns=False,
                   col_widths=[5, 30, 15, 15],
                   justification='left', num_rows=min(len(table_data), 20))],
-        [sg.Button('OK')]
+        [sg.Button('OK', **styles.form_button_style)]
     ]
 
     window = sg.Window('Lista de Clientes', layout, modal=True)

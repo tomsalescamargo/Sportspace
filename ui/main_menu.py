@@ -18,14 +18,14 @@ def run_main_menu():
     layout = [
         [sg.Text('Sistema de Reserva de Quadras', font=styles.HEADING_FONT, pad=styles.HEADING_PAD)],
         [sg.Column([
-            [sg.Button('Gerenciar Quadras', key='manage_courts', size=styles.BUTTON_SIZE, pad=styles.BUTTON_PAD)],
-            [sg.Button('Gerenciar Clientes', key='manage_clients', size=styles.BUTTON_SIZE, pad=styles.BUTTON_PAD)],
-            [sg.Button('Área do Gerente', key='manager_area', size=styles.BUTTON_SIZE, pad=styles.BUTTON_PAD)],
-            [sg.Button('Sair', key='exit', size=styles.BUTTON_SIZE, pad=styles.BUTTON_PAD)]
+            [sg.Button('Gerenciar Quadras', key='manage_courts', **styles.main_button_style)],
+            [sg.Button('Gerenciar Clientes', key='manage_clients', **styles.main_button_style)],
+            [sg.Button('Área do Gerente', key='manager_area', **styles.main_button_style)],
+            [sg.Button('Sair', key='exit', **styles.main_button_style)]
         ], element_justification='center', expand_x=True)]
     ]
 
-    window = sg.Window('Menu Principal', layout, element_justification='center', size=styles.DEFAULT_WINDOW_SIZE)
+    window = sg.Window('Menu Principal', layout, **styles.main_window_style)
     
     next_window = 'exit'
     while True:
@@ -57,7 +57,7 @@ def _run_password_prompt():
     layout = [
         [sg.Text('Digite a senha do Gerente:')],
         [sg.Input(key='-PASSWORD-', password_char='*')],
-        [sg.Button('OK'), sg.Button('Cancelar')]
+        [sg.Button('OK', **styles.form_button_style), sg.Button('Cancelar', **styles.form_button_style)]
     ]
     window = sg.Window('Autenticação', layout, modal=True)
     event, values = window.read()

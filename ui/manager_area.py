@@ -14,13 +14,13 @@ def run_manager_area():
     layout = [
         [sg.Text('Área do Gerente', font=styles.HEADING_FONT, pad=styles.HEADING_PAD)],
         [sg.Column([
-            [sg.Button('Gerar Relatorios', key='generate_reports', size=styles.BUTTON_SIZE, pad=styles.BUTTON_PAD)],
-            [sg.Button('Registrar Custo Fixo', key='register_fixed_cost', size=styles.BUTTON_SIZE, pad=styles.BUTTON_PAD)],
-            [sg.Button('Voltar', key='back_to_main', size=styles.BUTTON_SIZE, pad=styles.BUTTON_PAD)]
+            [sg.Button('Gerar Relatorios', key='generate_reports', **styles.main_button_style)],
+            [sg.Button('Registrar Custo Fixo', key='register_fixed_cost', **styles.main_button_style)],
+            [sg.Button('Voltar', key='back_to_main', **styles.main_button_style)]
         ], element_justification='center', expand_x=True)]
     ]
     
-    window = sg.Window('Área do Gerente', layout, element_justification='center', size=styles.DEFAULT_WINDOW_SIZE)
+    window = sg.Window('Área do Gerente', layout, **styles.main_window_style)
 
     next_window = 'back_to_main'
     while True:
@@ -41,11 +41,11 @@ def _run_register_fixed_cost_form():
     """
     layout = [
         [sg.Text('Registrar Novo Custo Fixo', font=styles.HEADING_FONT)],
-        [sg.Text('Nome:', size=(15, 1)), sg.Input(key='name')],
-        [sg.Text('Descrição:', size=(15, 1)), sg.Input(key='description')],
-        [sg.Text('Valor:', size=(15, 1)), sg.Input(key='value')],
-        [sg.Text('Data:', size=(15, 1)), sg.Input(key='date', size=(20, 1)), sg.CalendarButton('Selecionar Data', target='date', format='%Y-%m-%d')],
-        [sg.Button('Salvar'), sg.Cancel('Cancelar')]
+        [sg.Text('Nome:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='name')],
+        [sg.Text('Descrição:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='description')],
+        [sg.Text('Valor:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='value')],
+        [sg.Text('Data:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='date', size=(20, 1)), sg.CalendarButton('Selecionar Data', target='date', format='%Y-%m-%d')],
+        [sg.Button('Salvar', **styles.form_button_style), sg.Cancel('Cancelar', **styles.form_button_style)]
     ]
 
     window = sg.Window('Registrar Custo Fixo', layout, modal=True)
