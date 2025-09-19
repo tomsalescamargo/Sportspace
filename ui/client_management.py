@@ -5,7 +5,7 @@ import FreeSimpleGUI as sg
 from model.Client import Client
 import ui.styles as styles
 from database.supabase_client import db_client
-from model.exceptions import FormValidationException
+from utils.exceptions import FormValidationException
 
 def run_manage_clients():
     layout = [

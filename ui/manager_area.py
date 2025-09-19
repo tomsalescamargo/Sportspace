@@ -5,7 +5,7 @@ import FreeSimpleGUI as sg
 from database.supabase_client import db_client
 from model.FixedCost import FixedCost
 import ui.styles as styles
-from model.exceptions import FormValidationException
+from utils.exceptions import FormValidationException
 
 def run_manager_area():
     """

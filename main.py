@@ -1,5 +1,5 @@
 import FreeSimpleGUI as sg
-from ui import main_menu, court_management, client_management, manager_area
+from ui import main_menu, court_management, client_management, reservation_management, manager_area
 
 def main():
     """
@@ -18,6 +18,8 @@ def main():
                 next_window = court_management.run_manage_courts()
             case 'manage_clients':
                 next_window = client_management.run_manage_clients()
+            case 'manage_reservations':
+                next_window = reservation_management.run_manage_reservations()
             case 'manager_area':
                 next_window = manager_area.run_manager_area()
             case 'back_to_main':

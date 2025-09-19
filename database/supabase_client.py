@@ -74,7 +74,7 @@ class SupabaseClient:
         return response
 
     def get_clients(self) -> list[Client]:
-        response = self.client.table('clients').select('*').execute()
+        response = self.client.table('clients').select('*').order("name", desc=False).execute()
         clients = []
         for item in response.data:
             clients.append(Client(

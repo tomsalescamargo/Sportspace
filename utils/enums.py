@@ -16,3 +16,8 @@ class CourtType(Enum):
 class ReportType(Enum):
     FATURAMENTO = "Faturamento"
     OCUPACAO = "Ocupacao"
+
+class PaymentMethod(Enum):
+    PIX = "Pix"
+    DINHEIRO = "Dinheiro"
+    CARTAO = "Cartão"

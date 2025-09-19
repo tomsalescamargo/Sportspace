@@ -1,4 +1,4 @@
-from model.exceptions import FormValidationException
+from utils.exceptions import FormValidationException
 
 class FixedCost:
     def __init__(self, name: str, description: str, value: float):

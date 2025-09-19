@@ -1,4 +1,4 @@
-from model.exceptions import FormValidationException
+from utils.exceptions import FormValidationException
 from datetime import time
 
 class Court:
@@ -102,4 +102,4 @@ class Court:
         self.__end_hour = str(end_time)
 
     def __str__(self) -> str:
-        return f"Quadra id={self.id} -> nome='{self.name}', tipo='{self.court_type}', preco_hora={self.price_per_hour})"
+        return f'Quadra {self.name} | N⁰ {self.id} | {self.court_type}' 

@@ -1,6 +1,6 @@
 from typing import List
 from .Reservation import Reservation
-from model.exceptions import FormValidationException
+from utils.exceptions import FormValidationException
 
 class Client:
     def __init__(self, id: int, name: str, phone: str, cpf: str):

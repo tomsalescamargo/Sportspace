@@ -3,10 +3,10 @@ Este módulo define a janela de gerenciamento de quadras.
 """
 import FreeSimpleGUI as sg
 from model.Court import Court
-from model.exceptions import FormValidationException
 import ui.styles as styles
 from database.supabase_client import db_client
-from model.enums import CourtType
+from utils.enums import CourtType
+from utils.exceptions import FormValidationException
 
 #TODO: validação correta de horas e atributos (para todos os modelos)
 

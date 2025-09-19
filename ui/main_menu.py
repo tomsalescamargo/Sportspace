@@ -18,8 +18,9 @@ def run_main_menu():
     layout = [
         [sg.Text('Sistema de Reserva de Quadras', font=styles.HEADING_FONT, pad=styles.HEADING_PAD)],
         [sg.Column([
-            [sg.Button('Gerenciar Quadras', key='manage_courts', **styles.main_button_style)],
-            [sg.Button('Gerenciar Clientes', key='manage_clients', **styles.main_button_style)],
+            [sg.Button('Quadras', key='manage_courts', **styles.main_button_style)],
+            [sg.Button('Clientes', key='manage_clients', **styles.main_button_style)],
+            [sg.Button('Reservas', key='manage_reservations', **styles.main_button_style)],
             [sg.Button('Área do Gerente', key='manager_area', **styles.main_button_style)],
             [sg.Button('Sair', key='exit', **styles.main_button_style)]
         ], element_justification='center', expand_x=True)]
@@ -37,6 +38,9 @@ def run_main_menu():
             break
         elif event == 'manage_clients':
             next_window = 'manage_clients'
+            break
+        elif event == 'manage_reservations':
+            next_window = 'manage_reservations'
             break
         elif event == 'manager_area':
             password = _run_password_prompt()
