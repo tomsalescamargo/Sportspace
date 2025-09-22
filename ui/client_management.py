@@ -4,20 +4,25 @@ Este módulo define a janela de gerenciamento de clientes.
 import FreeSimpleGUI as sg
 from model.Client import Client
 import ui.styles as styles
-from database.supabase_client import db_client
 from utils.exceptions import FormValidationException
 
-def run_manage_clients():
+
+def run_manage_clients(client_service):
     layout = [
-        [sg.Text('Gerenciar Clientes', font=styles.HEADING_FONT, pad=styles.HEADING_PAD)],
+        [sg.Text('Gerenciar Clientes', font=styles.HEADING_FONT,
+                 pad=styles.HEADING_PAD)],
         [sg.Column([
-            [sg.Button('Cadastrar Novo Cliente', key='register_client', **styles.main_button_style)],
-            [sg.Button('Listar Clientes', key='list_clients', **styles.main_button_style)],
-            [sg.Button('Voltar', key='back_to_main', **styles.main_button_style)]
+            [sg.Button('Cadastrar Novo Cliente',
+                       key='register_client', **styles.main_button_style)],
+            [sg.Button('Listar Clientes', key='list_clients',
+                       **styles.main_button_style)],
+            [sg.Button('Voltar', key='back_to_main',
+                       **styles.main_button_style)]
         ], element_justification='center', expand_x=True)]
     ]
 
-    window = sg.Window('Gerenciar Clientes', layout, **styles.main_window_style)
+    window = sg.Window('Gerenciar Clientes', layout,
+                       **styles.main_window_style)
 
     next_window = 'back_to_main'
     while True:
@@ -25,23 +30,27 @@ def run_manage_clients():
         if event in (sg.WIN_CLOSED, 'back_to_main'):
             break
         elif event == 'register_client':
-            _run_register_client_form()
+            _run_register_client_form(client_service)
         elif event == 'list_clients':
-            _run_list_clients_table()
+            _run_list_clients_table(client_service)
 
     window.close()
     return next_window
 
 
-def _run_register_client_form():
+def _run_register_client_form(client_service):
     values = {}
     while True:
         layout = [
             [sg.Text('Cadastrar Novo Cliente', font=styles.HEADING_FONT)],
-            [sg.Text('Nome Completo:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='name', default_text=values.get('name', ''))],
-            [sg.Text('Telefone:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='phone', default_text=values.get('phone', ''))],
-            [sg.Text('CPF:', size=styles.INPUT_LABEL_SIZE), sg.Input(key='cpf', default_text=values.get('cpf', ''))],
-            [sg.Push(), sg.Button('Salvar', **styles.form_button_style), sg.Cancel('Cancelar', **styles.form_button_style)]
+            [sg.Text('Nome Completo:', size=styles.INPUT_LABEL_SIZE), sg.Input(
+                key='name', default_text=values.get('name', ''))],
+            [sg.Text('Telefone:', size=styles.INPUT_LABEL_SIZE), sg.Input(
+                key='phone', default_text=values.get('phone', ''))],
+            [sg.Text('CPF:', size=styles.INPUT_LABEL_SIZE), sg.Input(
+                key='cpf', default_text=values.get('cpf', ''))],
+            [sg.Push(), sg.Button('Salvar', **styles.form_button_style),
+             sg.Cancel('Cancelar', **styles.form_button_style)]
         ]
 
         window = sg.Window('Cadastrar Cliente', layout, modal=True)
@@ -50,7 +59,7 @@ def _run_register_client_form():
         if event in (sg.WIN_CLOSED, 'Cancelar'):
             window.close()
             break
-        
+
         if event == 'Salvar':
             try:
                 new_client = Client(
@@ -60,18 +69,20 @@ def _run_register_client_form():
                     cpf=values['cpf']
                 )
 
-                db_client.create_client(new_client)
+                client_service.create_client(new_client)
                 sg.popup('Sucesso', 'Cliente cadastrado com sucesso!')
                 break
             except FormValidationException as e:
                 sg.popup('Erro de Validação', str(e))
             except Exception as e:
-                sg.popup('Erro no Banco de Dados', f'Ocorreu um erro ao salvar o cliente: {e}')
+                sg.popup('Erro no Banco de Dados',
+                         f'Ocorreu um erro ao salvar o cliente: {e}')
             finally:
                 window.close()
 
-def _run_list_clients_table():
-    clients = db_client.get_clients()
+
+def _run_list_clients_table(client_service):
+    clients = client_service.get_clients()
 
     if not clients:
         sg.popup('Nenhum cliente encontrado.')

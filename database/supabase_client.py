@@ -1,25 +1,24 @@
 """
 Este módulo gerencia a comunicação com o banco de dados Supabase.
 """
-import os
-from dotenv import load_dotenv
-import supabase
 from model.Client import Client
 from model.Court import Court
-from model.FixedCost import FixedCost
 
-load_dotenv()
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-
-#TODO: sepa isso aqui vai ficar grande tbm, separar
 class SupabaseClient:
-    def __init__(self):
-        self.client = supabase.create_client(SUPABASE_URL, SUPABASE_KEY)
+    """
+    Cliente principal da aplicação. Contém métodos comuns a todas as subclasses.
+    """
+
+    def __init__(self, client):
+        self._client = client
+
+    @property
+    def client(self):
+        return self._client
 
     def get_courts(self) -> list[Court]:
-        response = self.client.table('courts').select('*').execute()
+        response = self._client.table('courts').select('*').execute()
         courts = []
         for item in response.data:
             courts.append(Court(
@@ -34,47 +33,9 @@ class SupabaseClient:
             ))
         return courts
 
-    def create_court(self, court: Court):
-        """
-        Cria uma quadra nova na tabela 'courts' do banco de dados.
-
-        Args:
-            court: Um objeto Court com os dados da quadra a ser criada.
-        """
-        court_dict = {
-            "name": court.name,
-            "court_type": court.court_type,
-            "description": court.description,
-            "capacity": court.capacity,
-            "price_per_hour": court.price_per_hour,
-            "start_hour": court.start_hour,
-            "end_hour": court.end_hour,
-        }
-        response = self.client.table('courts').insert(court_dict).execute()
-        return response
-
-    #TODO: remover data daqui e do banco de dados. (tem q ficar por enquanto até o professor corrigir a entrega pq senao ele vai tentar registrar custo fixo e n vai bater com o banco)
-    def create_fixed_cost(self, fc: FixedCost):
-        fixed_cost = {
-            "name": fc.name,
-            "description": fc.description,
-            "value" : fc.value,
-            "date" : "2025-12-8"
-        }
-        response = self.client.table('fixedCosts').insert(fixed_cost).execute()
-        return response
-
-    def create_client(self, client: Client):
-        client_dict = {
-            "name": client.name,
-            "phone": client.phone,
-            "cpf": client.cpf
-        }
-        response = self.client.table('clients').insert(client_dict).execute()
-        return response
-
     def get_clients(self) -> list[Client]:
-        response = self.client.table('clients').select('*').order("name", desc=False).execute()
+        response = self._client.table('clients').select(
+            '*').order("name", desc=False).execute()
         clients = []
         for item in response.data:
             clients.append(Client(
@@ -84,13 +45,3 @@ class SupabaseClient:
                 cpf=item['cpf']
             ))
         return clients
-
-    def update_client(self, client_id: int, data_to_update: dict):
-        response = self.client.table('clients').update(data_to_update).eq('id', client_id).execute()
-        return response
-
-    def delete_client(self, client_id: int):
-        response = self.client.table('clients').delete().eq('id', client_id).execute()
-        return response
-
-db_client = SupabaseClient()
