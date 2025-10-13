@@ -22,8 +22,6 @@ def run_manage_reservations(reservation_service):
                        **styles.main_button_style)],
             [sg.Button('Listar Reservas', key='list_reservations',
                        **styles.main_button_style)],
-            [sg.Button('Listar Reservas de um Cliente',
-                       key='list_reservations_by_client', **styles.main_button_style)],
             [sg.Button('Voltar', key='back_to_main',
                        **styles.main_button_style)]
         ], element_justification='center', expand_x=True)]
@@ -40,11 +38,7 @@ def run_manage_reservations(reservation_service):
         elif event == 'create_reservation':
             _run_register_reservation_form(reservation_service)
         elif event == 'list_reservations':
-            # _run_list_reservations_table(reservation_service)
-            sg.popup('Funcionalidade ainda não implementada.')
-        elif event == 'list_reservations_by_client':
-            # _run_list_reservations_by_client_table(reservation_service)
-            sg.popup('Funcionalidade ainda não implementada.')
+            _run_list_reservations_table(reservation_service)
 
     window.close()
     return next_window
@@ -133,7 +127,7 @@ def _run_register_reservation_form(reservation_service):
 
                     # reservation client da throw em FormValidationException caso algo esteja errado
                     reservation_service.validate_reservation(new_reservation)
-                    reservation_service.add_to_reservations(new_reservation)
+                    reservation_service.create_reservation(new_reservation)
 
                     sg.popup('Sucesso', 'Reserva cadastrada com sucesso!')
                     break
@@ -146,6 +140,148 @@ def _run_register_reservation_form(reservation_service):
     finally:
         window.close()
 
+
+def _run_list_reservations_table(reservation_service):
+    reservations = reservation_service.get_reservations()
+
+    headings = ['ID', 'Cliente', 'Quadra', 'Data e Hora', 'Status']
+    table_data = []
+
+    for res in reservations:
+        client_name = res['clients']['name'] if res.get('clients') else 'N/A'
+        court_name = res['courts']['name'] if res.get('courts') else 'N/A'
+        table_data.append([
+            res['id'],
+            client_name,
+            court_name,
+            res['date_time'],
+            res['status']
+        ])
+
+    layout = [
+        [sg.Text('Lista de Reservas', font=styles.HEADING_FONT)],
+        [sg.Table(
+            values=table_data,
+            headings=headings,
+            auto_size_columns=False,
+            col_widths=[3, 20, 20, 15, 18],
+            justification='left',
+            num_rows=15,
+            alternating_row_color='lightblue',
+            key='-TABLE-',
+            row_height=25,
+            enable_events=True
+        )],
+        [sg.Button('Voltar', **styles.form_button_style),
+         sg.Button('Editar', **styles.form_button_style),
+         sg.Button('Pagamento', **styles.form_button_style),
+         sg.Button('Serv. Extra', **styles.form_button_style)]
+    ]
+
+    window = sg.Window('Lista de Reservas', layout, modal=True)
+
+    selected_reservation = None
+    while True:
+        event, values = window.read()
+        if event in (sg.WIN_CLOSED, 'Voltar'):
+            break
+        
+        if event == '-TABLE-':
+            if values['-TABLE-']:
+                selected_index = values['-TABLE-'][0]
+                selected_reservation = reservations[selected_index]
+
+        if event == 'Editar':
+            if selected_reservation:
+                _run_edit_reservation_form(reservation_service, selected_reservation)
+                # Refresh the table after editing
+                reservations = reservation_service.get_reservations()
+                table_data = []
+                for res in reservations:
+                    client_name = res['clients']['name'] if res.get('clients') else 'N/A'
+                    court_name = res['courts']['name'] if res.get('courts') else 'N/A'
+                    table_data.append([
+                        res['id'],
+                        client_name,
+                        court_name,
+                        res['date_time'],
+                        res['status']
+                    ])
+                window['-TABLE-'].update(values=table_data)
+            else:
+                sg.popup('Por favor, selecione uma reserva para editar.')
+
+    window.close()
+
+def _run_edit_reservation_form(reservation_service, reservation):
+    courts = reservation_service.get_courts()
+    clients = reservation_service.get_clients()
+
+    court_hash = {court.name: court.id for court in courts}
+    court_names = list(court_hash.keys())
+
+    client_hash = {client.name: client.id for client in clients}
+    client_names = list(client_hash.keys())
+
+    reservation_datetime = datetime.strptime(reservation['date_time'], '%Y-%m-%dT%H:%M:%S')
+
+    hours = [f'{h:02d}:00' for h in range(24)]
+
+    layout = [
+        [sg.Text('Editar Reserva', font=styles.HEADING_FONT)],
+        [sg.Text('Quadra:', size=styles.INPUT_LABEL_SIZE),
+         sg.Combo(court_names, key='court_name', default_value=reservation['courts']['name'], readonly=True, size=(30, 1))],
+        [sg.Text('Cliente:', size=styles.INPUT_LABEL_SIZE),
+            sg.Combo(client_names, key='client_name', default_value=reservation['clients']['name'], readonly=True, size=(30, 1))],
+        [sg.Text('Data:', size=styles.INPUT_LABEL_SIZE),
+         sg.Input(key='date', size=(16, 1), readonly=True, default_text=reservation_datetime.strftime('%Y-%m-%d'),
+                  disabled_readonly_background_color='white'),
+         sg.CalendarButton('Selecionar', target='date', format='%Y-%m-%d', **styles.form_button_style)],
+        [sg.Text('Hora:', size=styles.INPUT_LABEL_SIZE),
+         sg.Combo(hours, key='time', default_value=reservation_datetime.strftime('%H:%M'), readonly=True, size=(10, 1))],
+        [sg.Push(), sg.Button('Salvar', **styles.form_button_style),
+         sg.Button('Excluir', **styles.form_button_style), sg.Cancel('Cancelar', **styles.form_button_style)]
+    ]
+
+    window = sg.Window('Editar Reserva', layout, modal=True)
+
+    while True:
+        event, values = window.read()
+
+        if event in (sg.WIN_CLOSED, 'Cancelar'):
+            break
+
+        if event == 'Salvar':
+            try:
+                date_time_str = f"{values['date']} {values['time']}"
+                date_time = datetime.strptime(date_time_str, '%Y-%m-%d %H:%M')
+
+                updated_reservation = Reservation(
+                    client_id = client_hash[values['client_name']],
+                    court_id = court_hash[values['court_name']],
+                    date_time = date_time,
+                    status = reservation['status']
+                )
+
+                reservation_service.validate_reservation(updated_reservation)
+                reservation_service.update_reservation(reservation['id'], updated_reservation)
+                sg.popup('Sucesso', 'Reserva atualizada com sucesso!')
+                break
+            except FormValidationException as e:
+                sg.popup('Erro de validação', e)
+            except Exception as e:
+                sg.popup('Erro ao salvar', e)
+
+        if event == 'Excluir':
+            if sg.popup_yes_no('Tem certeza que deseja excluir esta reserva?') == 'Yes':
+                try:
+                    reservation_service.delete_reservation(reservation['id'])
+                    sg.popup('Sucesso', 'Reserva excluída com sucesso!')
+                    break
+                except Exception as e:
+                    sg.popup('Erro ao excluir', e)
+
+    window.close()
 
 def _run_client_search_window(clients):
     """

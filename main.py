@@ -1,5 +1,6 @@
 import FreeSimpleGUI as sg
 import os
+import logging
 from dotenv import load_dotenv
 import supabase
 from database.court_service import CourtService
@@ -13,6 +14,12 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+
+logger = logging.getLogger(__name__)
 
 def main():
     """
