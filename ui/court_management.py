@@ -126,12 +126,12 @@ def _run_court_form(court_service, court_to_edit=None):
                         end_hour=values['end_hour']
                     )
                     court_service.create_court(new_court)
-                    sg.popup('Sucesso', 'Quadra cadastrada com sucesso!')
+                    sg.popup('Quadra cadastrada com sucesso!')
 
                 break
 
             except FormValidationException as e:
-                sg.popup('Erro de Validação', str(e))
+                sg.popup('Dados inseridos inválidos', str(e))
             except Exception as e:
                 sg.popup('Erro no Banco de Dados',
                          f'Ocorreu um erro ao salvar a quadra: {e}')
