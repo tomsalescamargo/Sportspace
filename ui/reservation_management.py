@@ -1,14 +1,14 @@
 """
 Este módulo define a janela de gerenciamento de reservas.
 """
-import FreeSimpleGUI as sg
 import ui.styles as styles
 from model.Reservation import Reservation
 from utils.enums import ReservationStatus
-from datetime import datetime
-
 from utils.exceptions import FormValidationException
+from utils.reservations_helper import populate_reservations_table
 
+from datetime import datetime
+import FreeSimpleGUI as sg
 
 def run_manage_reservations(reservation_service):
     """
@@ -54,7 +54,7 @@ def _run_register_reservation_form(reservation_service):
 
     if not courts:
         sg.popup(
-            'Nenhuma quadra cadastrada. Cadastre uma quadra antes de criar uma reserva.')
+            'Nenhuma quadra cadastrada.')
         return
 
     clients = reservation_service.get_clients()
@@ -145,18 +145,7 @@ def _run_list_reservations_table(reservation_service):
     reservations = reservation_service.get_reservations()
 
     headings = ['ID', 'Cliente', 'Quadra', 'Data e Hora', 'Status']
-    table_data = []
-
-    for res in reservations:
-        client_name = res['clients']['name'] if res.get('clients') else 'N/A'
-        court_name = res['courts']['name'] if res.get('courts') else 'N/A'
-        table_data.append([
-            res['id'],
-            client_name,
-            court_name,
-            res['date_time'],
-            res['status']
-        ])
+    table_data = populate_reservations_table(reservations)
 
     layout = [
         [sg.Text('Lista de Reservas', font=styles.HEADING_FONT)],
@@ -174,8 +163,7 @@ def _run_list_reservations_table(reservation_service):
         )],
         [sg.Button('Voltar', **styles.form_button_style),
          sg.Button('Editar', **styles.form_button_style),
-         sg.Button('Pagamento', **styles.form_button_style),
-         sg.Button('Serv. Extra', **styles.form_button_style)]
+         sg.Button('Excluir', **{**styles.form_button_style, 'button_color': ('white', 'red')})]
     ]
 
     window = sg.Window('Lista de Reservas', layout, modal=True)
@@ -196,20 +184,25 @@ def _run_list_reservations_table(reservation_service):
                 _run_edit_reservation_form(reservation_service, selected_reservation)
                 # Refresh the table after editing
                 reservations = reservation_service.get_reservations()
-                table_data = []
-                for res in reservations:
-                    client_name = res['clients']['name'] if res.get('clients') else 'N/A'
-                    court_name = res['courts']['name'] if res.get('courts') else 'N/A'
-                    table_data.append([
-                        res['id'],
-                        client_name,
-                        court_name,
-                        res['date_time'],
-                        res['status']
-                    ])
+                table_data = populate_reservations_table(reservations)
                 window['-TABLE-'].update(values=table_data)
             else:
                 sg.popup('Por favor, selecione uma reserva para editar.')
+
+        if event == 'Excluir':
+            if selected_reservation:
+                if sg.popup_yes_no('Tem certeza que deseja excluir esta reserva?') == 'Yes':
+                    try:
+                        reservation_service.delete_reservation(selected_reservation['id'])
+                        sg.popup('Sucesso', 'Reserva excluída com sucesso!')
+                        reservations = reservation_service.get_reservations()
+                        table_data = populate_reservations_table(reservations)
+                        window['-TABLE-'].update(values=table_data)
+                    except Exception as e:
+                        sg.popup('Erro ao excluir', e)
+            else:
+                sg.popup('Por favor, selecione uma reserva para excluir.')
+
 
     window.close()
 
@@ -240,7 +233,7 @@ def _run_edit_reservation_form(reservation_service, reservation):
         [sg.Text('Hora:', size=styles.INPUT_LABEL_SIZE),
          sg.Combo(hours, key='time', default_value=reservation_datetime.strftime('%H:%M'), readonly=True, size=(10, 1))],
         [sg.Push(), sg.Button('Salvar', **styles.form_button_style),
-         sg.Button('Excluir', **styles.form_button_style), sg.Cancel('Cancelar', **styles.form_button_style)]
+         sg.Cancel('Cancelar', **styles.form_button_style)]
     ]
 
     window = sg.Window('Editar Reserva', layout, modal=True)
@@ -271,15 +264,6 @@ def _run_edit_reservation_form(reservation_service, reservation):
                 sg.popup('Erro de validação', e)
             except Exception as e:
                 sg.popup('Erro ao salvar', e)
-
-        if event == 'Excluir':
-            if sg.popup_yes_no('Tem certeza que deseja excluir esta reserva?') == 'Yes':
-                try:
-                    reservation_service.delete_reservation(reservation['id'])
-                    sg.popup('Sucesso', 'Reserva excluída com sucesso!')
-                    break
-                except Exception as e:
-                    sg.popup('Erro ao excluir', e)
 
     window.close()
 
