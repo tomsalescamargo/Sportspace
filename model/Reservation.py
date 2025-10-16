@@ -1,6 +1,5 @@
 from datetime import datetime
 from utils.enums import ReservationStatus
-from utils.exceptions import FormValidationException
 
 class Reservation:
     def __init__(self, client_id: int, court_id: int, date_time: datetime, status: ReservationStatus):
