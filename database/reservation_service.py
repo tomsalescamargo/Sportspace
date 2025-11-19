@@ -59,6 +59,17 @@ class ReservationService(SupabaseClient):
         response = self._client.table('reservations').select('*, clients(name), courts(name)').execute()
         return response.data
 
+    def get_reservations_by_client(self, client_id):
+        response = (
+            self._client
+            .table('reservations')
+            .select('*, clients(name), courts(name)')
+            .eq('client_id', client_id)
+            .order('date_time', desc=True)
+            .execute()
+        )
+        return response.data
+
     def update_reservation(self, reservation_id, reservation):
         reservation_dict = {
             "client_id": reservation.client_id,
@@ -73,3 +84,22 @@ class ReservationService(SupabaseClient):
     def delete_reservation(self, reservation_id):
         response = self._client.table('reservations').delete().eq('id', reservation_id).execute()
         return response
+
+    def get_reservations_by_court_and_date(self, court_id, date_str):
+        """
+        Busca reservas de uma quadra em um dia específico.
+        date_str formato esperado: 'YYYY-MM-DD'
+        """
+        start_dt = f"{date_str}T00:00:00"
+        end_dt = f"{date_str}T23:59:59"
+
+        response = (
+            self._client
+            .table('reservations')
+            .select('*, clients(name)')
+            .eq('court_id', court_id)
+            .gte('date_time', start_dt)
+            .lte('date_time', end_dt)
+            .execute()
+        )
+        return response.data

@@ -23,6 +23,8 @@ class ReservationUI:
                            **styles.main_button_style)],
                 [sg.Button('Listar Reservas', key='list_reservations',
                            **styles.main_button_style)],
+                [sg.Button('Histórico por Cliente', key='client_history',
+                           **styles.main_button_style)],
                 [sg.Button('Voltar', key='back_to_main',
                            **styles.main_button_style)]
             ], element_justification='center', expand_x=True)]
@@ -40,6 +42,8 @@ class ReservationUI:
                 self._run_register_reservation_form(reservation_service)
             elif event == 'list_reservations':
                 self._run_list_reservations_table(reservation_service)
+            elif event == 'client_history':
+                self._run_client_reservation_history(reservation_service)
 
         window.close()
         return next_window
@@ -140,6 +144,48 @@ class ReservationUI:
                         window.refresh()
         finally:
             window.close()
+
+
+    def _run_client_reservation_history(self, reservation_service):
+        clients = reservation_service.get_clients()
+
+        if not clients:
+            sg.popup('Nenhum cliente cadastrado.')
+            return
+
+        selected_client = self._run_client_search_window(clients)
+
+        if not selected_client:
+            return
+
+        reservations = reservation_service.get_reservations_by_client(selected_client.id)
+
+        if not reservations:
+            sg.popup('Nenhuma reserva encontrada para este cliente.')
+            return
+
+        headings = ['ID', 'Cliente', 'Quadra', 'Data e Hora', 'Status']
+        table_data = populate_reservations_table(reservations)
+
+        layout = [
+            [sg.Text(f'Histórico de Reservas - {selected_client.name}', font=styles.HEADING_FONT)],
+            [sg.Table(
+                values=table_data,
+                headings=headings,
+                auto_size_columns=False,
+                col_widths=[3, 20, 20, 15, 18],
+                justification='left',
+                num_rows=15,
+                alternating_row_color='lightblue',
+                key='-TABLE-',
+                row_height=25
+            )],
+            [sg.Button('Voltar', **styles.form_button_style)]
+        ]
+
+        window = sg.Window('Histórico de Reservas', layout, modal=True)
+        window.read()
+        window.close()
 
 
     def _run_list_reservations_table(self, reservation_service):

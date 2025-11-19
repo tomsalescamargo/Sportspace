@@ -6,12 +6,13 @@ from model.Court import Court
 import ui.styles as styles
 from utils.enums import CourtType
 from utils.exceptions import FormValidationException
+from utils.schedule_helper import build_court_daily_schedule
 
 # TODO: validação correta de horas e atributos (para todos os modelos)
 
 
 class CourtUI:
-    def run_manage_courts(self, court_service):
+    def run_manage_courts(self, court_service, reservation_service):
         """
         Creates and displays the court management window.
         """
@@ -24,6 +25,8 @@ class CourtUI:
                 [sg.Button('Alterar Quadra', key='update_court',
                            **styles.main_button_style)],
                 [sg.Button('Listar Quadras', key='list_courts',
+                           **styles.main_button_style)],
+                [sg.Button('Consultar Disponibilidade', key='check_availability',
                            **styles.main_button_style)],
                 [sg.Button('Voltar', key='back_to_main',
                            **styles.main_button_style)]
@@ -43,6 +46,8 @@ class CourtUI:
                 self._run_update_delete_court_flow(court_service)
             elif event == 'list_courts':
                 self._run_list_courts_table(court_service)
+            elif event == 'check_availability':
+                self._run_court_availability_flow(court_service, reservation_service)
 
         window.close()
         return next_window
@@ -241,5 +246,124 @@ class CourtUI:
         ]
 
         window = sg.Window('Lista de Quadras', layout, modal=True)
+        window.read()
+        window.close()
+
+
+    def _run_court_availability_flow(self, court_service, reservation_service):
+        court_types = [court_type.value for court_type in CourtType]
+        courts = court_service.get_courts()
+
+        if not courts:
+            sg.popup('Nenhuma quadra encontrada.')
+            return
+
+        layout = [
+            [sg.Text('Consultar Disponibilidade de Quadra', font=styles.HEADING_FONT)],
+            [sg.Text('Modalidade:', size=styles.INPUT_LABEL_SIZE),
+             sg.Combo(court_types, key='court_type', default_value=court_types[0], readonly=True, size=(15, 1))],
+            [sg.Text('Data:', size=styles.INPUT_LABEL_SIZE),
+             sg.Input(key='date', size=(16, 1), readonly=True, disabled_readonly_background_color='white'),
+             sg.CalendarButton('Selecionar', target='date', format='%Y-%m-%d', **styles.form_button_style)],
+            [sg.Button('Buscar Quadras', **styles.form_button_style),
+             sg.Cancel('Cancelar', **styles.form_button_style)]
+        ]
+
+        window = sg.Window('Disponibilidade de Quadra', layout, modal=True)
+
+        while True:
+            event, values = window.read()
+
+            if event in (sg.WIN_CLOSED, 'Cancelar'):
+                break
+
+            if event == 'Buscar Quadras':
+                if not values['date']:
+                    sg.popup('Erro de Validação', 'Selecione uma data.')
+                    continue
+
+                filtered = [c for c in courts if c.court_type == values['court_type']]
+                if not filtered:
+                    sg.popup('Nenhuma quadra encontrada para esta modalidade.')
+                    continue
+
+                selected = self._run_court_selection_modal(filtered)
+                if selected:
+                    window.hide()
+                    self._run_court_schedule_window(selected, values['date'], reservation_service)
+                    window.un_hide()
+
+        window.close()
+
+
+    def _run_court_selection_modal(self, courts):
+        headings = ['ID', 'Nome', 'Tipo', 'Abertura', 'Fechamento']
+        table_data = [[c.id, c.name, c.court_type, c.start_hour, c.end_hour] for c in courts]
+
+        layout = [
+            [sg.Text('Selecione a Quadra', font=styles.HEADING_FONT)],
+            [sg.Table(
+                values=table_data,
+                headings=headings,
+                key='-TABLE-',
+                enable_events=True,
+                auto_size_columns=False,
+                col_widths=[6, 26, 14, 8, 8],
+                justification='left',
+                num_rows=min(len(table_data), 12),
+                selected_row_colors=('white', 'blue')
+            )],
+            [sg.Push(), sg.Button('Selecionar', **styles.form_button_style), sg.Cancel('Cancelar', **styles.form_button_style)]
+        ]
+
+        window = sg.Window('Quadras Filtradas', layout, modal=True, size=(700, 380))
+        selected_court = None
+
+        while True:
+            event, values = window.read()
+
+            if event in (sg.WIN_CLOSED, 'Cancelar'):
+                break
+
+            if event == 'Selecionar':
+                selected_rows = values['-TABLE-']
+                if selected_rows:
+                    idx = selected_rows[0]
+                    selected_court = courts[idx]
+                    break
+                else:
+                    sg.popup('Por favor, selecione uma quadra na tabela.', title='Aviso', custom_text='Ok', button_color=('white', 'black'))
+
+        window.close()
+        return selected_court
+
+
+    def _run_court_schedule_window(self, court, date_str, reservation_service):
+        reservations = reservation_service.get_reservations_by_court_and_date(court.id, date_str)
+
+        schedule = build_court_daily_schedule(court, reservations)
+
+        table_data = [
+            [slot['hour'], slot['status'], slot['client_name'], slot['reservation_status']]
+            for slot in schedule
+        ]
+
+        headings = ['Horário', 'Disponibilidade', 'Cliente', 'Status Reserva']
+
+        layout = [
+            [sg.Text(f'Disponibilidade - {court.name} ({date_str})', font=styles.HEADING_FONT)],
+            [sg.Table(
+                values=table_data,
+                headings=headings,
+                auto_size_columns=False,
+                col_widths=[10, 15, 25, 18],
+                justification='left',
+                num_rows=min(len(table_data), 15),
+                alternating_row_color='lightblue'
+            )],
+            [sg.Button('Voltar', **styles.form_button_style)]
+        ]
+
+        window = sg.Window('Agenda da Quadra', layout, modal=True)
         window.read()
         window.close()

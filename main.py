@@ -55,7 +55,7 @@ def main():
             case 'main_menu':
                 next_window = main_menu_ui.run_main_menu()
             case 'manage_courts':
-                next_window = court_ui.run_manage_courts(court_service)
+                next_window = court_ui.run_manage_courts(court_service, reservation_service)
             case 'manage_clients':
                 next_window = client_ui.run_manage_clients(client_service)
             case 'manage_reservations':
