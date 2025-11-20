@@ -1,6 +1,9 @@
 from database.supabase_client import SupabaseClient
+from model.ExtraService import ExtraService
+from model.Payment import Payment
 from model.Reservation import Reservation
 from utils.exceptions import FormValidationException
+from utils.enums import ReservationStatus, PaymentMethod
 from datetime import datetime
 import logging
 
@@ -103,3 +106,142 @@ class ReservationService(SupabaseClient):
             .execute()
         )
         return response.data
+
+    def add_payment(self, payment: Payment):
+        data = {
+            "reservation_id": payment.reservation_id,
+            "method": payment.method,
+            "value": payment.value,
+            "date": payment.date
+        }
+        return self._client.table('payments').insert(data).execute()
+
+    def get_available_extra_services(self) -> list[ExtraService]:
+        """Busca o catálogo de serviços extras (tabela 'extra_services')"""
+        response = self._client.table('extra_services').select('*').execute()
+        services = []
+        for item in response.data:
+            services.append(ExtraService(
+                id=item['id'],
+                service=item['service'],
+                value=item['value']
+            ))
+        return services
+
+    def add_service_to_reservation(self, reservation_id: int, service_id: int, quantity: int):
+
+        existing_item_response = (
+            self._client.table('services_reservations')
+            .select('*')
+            .eq('reservation_id', reservation_id)
+            .eq('service_id', service_id)
+            .execute()
+        )
+
+        response = None
+
+        if existing_item_response.data:
+            item = existing_item_response.data[0]
+            old_quantity = int(item['quantity'])
+            new_total_quantity = old_quantity + quantity
+
+            response = (
+                self._client.table('services_reservations')
+                .update({'quantity': new_total_quantity})
+                .eq('reservation_id', reservation_id)
+                .eq('service_id', service_id)
+                .execute()
+            )
+        else:
+            data = {
+                "reservation_id": reservation_id,
+                "service_id": service_id,
+                "quantity": quantity
+            }
+            response = self._client.table('services_reservations').insert(data).execute()
+
+        res_info = (
+            self._client.table('reservations')
+            .select('status')
+            .eq('id', reservation_id)
+            .single()
+            .execute()
+        )
+
+        if res_info.data:
+            current_status = res_info.data['status']
+            if current_status == ReservationStatus.CONFIRMADA.value:
+                self.update_status(reservation_id, ReservationStatus.AGUARDANDO_PAGAMENTO.value)
+
+        return response
+
+    def update_status(self, reservation_id: int, new_status: str):
+        return (
+            self._client.table('reservations')
+            .update({'status': new_status})
+            .eq('id', reservation_id)
+            .execute()
+        )
+
+    def calculate_reservation_balance(self, reservation_id: int):
+        res_response = (
+            self._client.table('reservations')
+            .select('court_id, courts(price_per_hour)')
+            .eq('id', reservation_id)
+            .single()
+            .execute()
+        )
+        reservation_data = res_response.data
+
+        court_price = float(reservation_data['courts']['price_per_hour'])
+
+        services_response = (
+            self._client.table('services_reservations')
+            .select('quantity, extra_services(value)')
+            .eq('reservation_id', reservation_id)
+            .execute()
+        )
+
+        services_total = 0.0
+        for item in services_response.data:
+            qty = int(item['quantity'])
+            price = float(item['extra_services']['value'])
+            services_total += qty * price
+
+        payments_response = (
+            self._client.table('payments')
+            .select('value')
+            .eq('reservation_id', reservation_id)
+            .execute()
+        )
+
+        total_paid = sum(float(p['value']) for p in payments_response.data)
+
+        total_cost = court_price + services_total
+        remaining_balance = total_cost - total_paid
+
+        return {
+            "court_price": court_price,
+            "services_total": services_total,
+            "total_cost": total_cost,
+            "total_paid": total_paid,
+            "remaining_balance": max(0.0, remaining_balance)
+        }
+
+    def get_reservation_services(self, reservation_id: int):
+        response = (
+            self._client.table('services_reservations')
+            .select('service_id, quantity, extra_services(service, value)')
+            .eq('reservation_id', reservation_id)
+            .execute()
+        )
+        return response.data or []
+
+    def remove_service_from_reservation(self, reservation_id: int, service_id: int):
+        return (
+            self._client.table('services_reservations')
+            .delete()
+            .eq('reservation_id', reservation_id)
+            .eq('service_id', service_id)
+            .execute()
+        )

@@ -2,6 +2,7 @@
 Este módulo define a janela da área do gerente.
 """
 from datetime import datetime
+from model.ExtraService import ExtraService
 
 import FreeSimpleGUI as sg
 from model.FixedCost import FixedCost
@@ -18,6 +19,8 @@ class ManagerAreaUI:
                      pad=styles.HEADING_PAD)],
             [sg.Column([
                 [sg.Button('Gerar Relatorios', key='generate_reports',
+                           **styles.main_button_style)],
+                [sg.Button('Gerenciar Serviços Extras', key='manage_services',
                            **styles.main_button_style)],
                 [sg.Button('Listar Custos Fixos', key='list_fixed_costs',
                            **styles.main_button_style)],
@@ -37,6 +40,8 @@ class ManagerAreaUI:
                 break
             elif event == 'generate_reports':
                 self._run_reports_menu(manager_service)
+            elif event == 'manage_services':
+                self._run_extra_services_manager(manager_service)
             elif event == 'list_fixed_costs':
                 self._show_fixed_costs_list(manager_service)
             elif event == 'register_fixed_cost':
@@ -88,6 +93,130 @@ class ManagerAreaUI:
                              f'Ocorreu um erro ao registrar o custo fixo: {e}')
                 finally:
                     window.close()
+        window.close()
+
+    def _run_extra_services_manager(self, manager_service):
+
+        services = manager_service.get_extra_services()
+        table_data = [[s.id, s.service, f"R$ {s.value:.2f}"] for s in services]
+        headings = ['ID', 'Serviço', 'Preço']
+
+        layout = [
+            [sg.Text('Catálogo de Serviços Extras', font=styles.HEADING_FONT)],
+            [sg.Table(
+                values=table_data,
+                headings=headings,
+                auto_size_columns=False,
+                col_widths=[5, 30, 15],
+                justification='left',
+                num_rows=10,
+                key='-TABLE-',
+                enable_events=True,
+                alternating_row_color='lightblue',
+                select_mode=sg.TABLE_SELECT_MODE_BROWSE
+            )],
+            [
+                sg.Button('Novo Serviço', key='btn_new', **styles.form_button_style),
+                sg.Button('Editar', key='btn_edit', **styles.form_button_style),
+                sg.Button('Excluir', key='btn_delete',
+                          **{**styles.form_button_style, 'button_color': ('white', 'red')}),
+                sg.Button('Voltar', key='btn_back', **styles.form_button_style)
+            ]
+        ]
+
+        window = sg.Window('Gerenciar Serviços', layout, modal=True)
+
+        selected_service = None
+
+        while True:
+            event, values = window.read()
+
+            if event in (sg.WIN_CLOSED, 'btn_back'):
+                break
+            if event == '-TABLE-':
+                if values['-TABLE-']:
+                    selected_index = values['-TABLE-'][0]
+                    selected_service = services[selected_index]
+
+            elif event == 'btn_new':
+                self._run_extra_service_form(manager_service)
+                services = manager_service.get_extra_services()
+                table_data = [[s.id, s.service, f"R$ {s.value:.2f}"] for s in services]
+                window['-TABLE-'].update(values=table_data)
+                selected_service = None
+
+            elif event == 'btn_edit':
+                if selected_service:
+                    self._run_extra_service_form(manager_service, selected_service)
+                    services = manager_service.get_extra_services()
+                    table_data = [[s.id, s.service, f"R$ {s.value:.2f}"] for s in services]
+                    window['-TABLE-'].update(values=table_data)
+                    selected_service = None
+                else:
+                    sg.popup("Por favor, selecione um serviço na tabela para editar.")
+
+            elif event == 'btn_delete':
+                if selected_service:
+                    if sg.popup_yes_no(f"Tem certeza que deseja excluir '{selected_service.service}'?") == 'Yes':
+                        try:
+                            manager_service.delete_extra_service(selected_service.id)
+                            sg.popup("Sucesso", "Serviço excluído!")
+                            services = manager_service.get_extra_services()
+                            table_data = [[s.id, s.service, f"R$ {s.value:.2f}"] for s in services]
+                            window['-TABLE-'].update(values=table_data)
+                            selected_service = None
+                        except Exception as e:
+                            sg.popup(f"Erro ao excluir: {e}")
+                else:
+                    sg.popup("Por favor, selecione um serviço na tabela para excluir.")
+
+        window.close()
+
+    def _run_extra_service_form(self, manager_service, service_to_edit=None):
+        is_editing = service_to_edit is not None
+        title = "Editar Serviço" if is_editing else "Novo Serviço"
+
+        defaults = {
+            'service': service_to_edit.service if is_editing else '',
+            'value': str(service_to_edit.value) if is_editing else ''
+        }
+
+        layout = [
+            [sg.Text(title, font=styles.HEADING_FONT)],
+            [sg.Text("Nome do Item:", size=styles.INPUT_LABEL_SIZE),
+             sg.Input(key='service', default_text=defaults['service'])],
+            [sg.Text("Preço (R$):", size=styles.INPUT_LABEL_SIZE),
+             sg.Input(key='value', default_text=defaults['value'])],
+            [sg.Button("Salvar", **styles.form_button_style), sg.Cancel("Cancelar", **styles.form_button_style)]
+        ]
+
+        window = sg.Window(title, layout, modal=True)
+
+        while True:
+            event, values = window.read()
+            if event in (sg.WIN_CLOSED, 'Cancelar'):
+                break
+
+            if event == 'Salvar':
+                try:
+                    new_service = ExtraService(
+                        id=service_to_edit.id if is_editing else 0,
+                        service=values['service'],
+                        value=values['value']
+                    )
+
+                    if is_editing:
+                        manager_service.update_extra_service(new_service)
+                        sg.popup("Serviço atualizado!")
+                    else:
+                        manager_service.create_extra_service(new_service)
+                        sg.popup("Serviço criado!")
+                    break
+                except FormValidationException as e:
+                    sg.popup(str(e))
+                except Exception as e:
+                    sg.popup(f"Erro ao salvar: {e}")
+
         window.close()
 
     def _show_fixed_costs_list(self, manager_service):

@@ -2,6 +2,7 @@ import calendar
 from datetime import datetime
 
 from database.supabase_client import SupabaseClient
+from model.ExtraService import ExtraService
 from model.FixedCost import FixedCost
 from utils.enums import ReservationStatus
 
@@ -143,3 +144,49 @@ class ManagerService(SupabaseClient):
             'net_result': net_result,
             'fixed_costs': fixed_costs_items,
         }
+
+    def create_extra_service(self, service: ExtraService):
+        data = {
+            "service": service.service,
+            "value": service.value
+        }
+        return self._client.table('extra_services').insert(data).execute()
+
+    def get_extra_services(self) -> list[ExtraService]:
+        response = (
+            self._client
+            .table('extra_services')
+            .select('*')
+            .order('service')
+            .execute()
+        )
+        services = []
+        for item in response.data or []:
+            services.append(ExtraService(
+                id=item['id'],
+                service=item['service'],
+                value=item['value']
+            ))
+        return services
+
+    def update_extra_service(self, service: ExtraService):
+        data = {
+            "service": service.service,
+            "value": service.value
+        }
+        return (
+            self._client
+            .table('extra_services')
+            .update(data)
+            .eq('id', service.id)
+            .execute()
+        )
+
+    def delete_extra_service(self, service_id: int):
+        return (
+            self._client
+            .table('extra_services')
+            .delete()
+            .eq('id', service_id)
+            .execute()
+        )
